@@ -1,8 +1,6 @@
 # WBAI-hackathon2018の修正中のファイルです。
 # oculomotor
-WBAI 2018 Hackathon Oculomotor Project Repository.
 
-[![preview](./doc/images/preview0.png)](https://youtu.be/WH7AUJzk70o)
 
 ## Requirements
 ### Docker
@@ -21,7 +19,7 @@ The code can be executed in two modes: the interactive mode and batch training m
 ### Common Instructions
 #### Clone this repository
 ```
-$ git clone --recursive https://github.com/wbap/oculomotor
+$ git clone --recursive https://github.com/HM-SYS/WBAI-hackathon2018
 ```
 
 #### Build the docker containers
