@@ -24,7 +24,7 @@ $ git clone --recursive https://github.com/HM-SYS/WBAI-hackathon2018
 
 #### Build the docker containers
 ```
-$ cd oculomotor
+$ cd WBAI-hackathon2018
 $ docker build -t wbap/oculomotor .
 ```
 
