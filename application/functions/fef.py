@@ -39,7 +39,7 @@ class ActionAccumulator(object):
 
         # Connected accmulators
         self.target_accmulators = []
-        
+
     def accumulate(self, value):
         self.likelihood += value
 
@@ -53,7 +53,7 @@ class ActionAccumulator(object):
     def post_process(self):
         # Clip likelihood
         self.likelihood = np.clip(self.likelihood, 0.0, 1.0)
-        
+
         # Decay likelihood
         self.likelihood *= self.decay_rate
 
@@ -74,7 +74,7 @@ class SaliencyAccumulator(ActionAccumulator):
         # Pixel x,y pos at left top corner of the region.
         self.pixel_x = pixel_x
         self.pixel_y = pixel_y
-        
+
     def process(self, saliency_map):
         # Crop region image
         region_saliency = saliency_map[self.pixel_y:self.pixel_y+GRID_WIDTH,
@@ -82,7 +82,7 @@ class SaliencyAccumulator(ActionAccumulator):
         average_saliency = np.mean(region_saliency)
         self.accumulate(average_saliency * SALIENCY_COEFF)
         self.expose()
-        
+
 
 class CursorAccumulator(ActionAccumulator):
     def __init__(self, pixel_x, pixel_y, ex, ey, cursor_template):
@@ -91,7 +91,7 @@ class CursorAccumulator(ActionAccumulator):
         self.pixel_x = pixel_x
         self.pixel_y = pixel_y
         self.cursor_template = cursor_template
-        
+
     def process(self, retina_image):
         # Crop region image
         region_image = retina_image[self.pixel_y:self.pixel_y+GRID_WIDTH,
@@ -99,35 +99,37 @@ class CursorAccumulator(ActionAccumulator):
         # Calculate template matching
         match = cv2.matchTemplate(region_image, self.cursor_template,
                                   cv2.TM_CCOEFF_NORMED)
+        #print("match " + str(match))
+        #print("--------------------------------------------------")
         # Find the maximum match value
         match_rate = np.max(match)
         self.accumulate(match_rate * CURSOR_MATCH_COEFF)
         self.expose()
-        
+
 
 class FEF(object):
     def __init__(self):
         self.timing = brica.Timing(4, 1, 0)
-        
+
         self.saliency_accumulators = []
         self.cursor_accumulators = []
-        
+
         cursor_template = load_image("data/debug_cursor_template_w.png")
-        
+
         for ix in range(GRID_DIVISION):
             pixel_x = GRID_WIDTH * ix
             cx = 2.0 / GRID_DIVISION * (ix + 0.5) - 1.0
-            
+
             for iy in range(GRID_DIVISION):
                 pixel_y = GRID_WIDTH * iy
                 cy = 2.0 / GRID_DIVISION * (iy + 0.5) - 1.0
-                
+
                 ex = -cx
                 ey = -cy
-                
+
                 saliency_accumulator = SaliencyAccumulator(pixel_x, pixel_y, ex, ey)
                 self.saliency_accumulators.append(saliency_accumulator)
-                
+
                 cursor_accumulator = CursorAccumulator(pixel_x, pixel_y, ex, ey,
                                                        cursor_template)
                 self.cursor_accumulators.append(cursor_accumulator)
@@ -135,7 +137,7 @@ class FEF(object):
 
         # Accmulator connection sample
         #self.saliency_accumulators[0].connect_to(self.saliency_accumulators[1])
-                
+
     def __call__(self, inputs):
         if 'from_lip' not in inputs:
             raise Exception('FEF did not recieve from LIP')
@@ -150,7 +152,7 @@ class FEF(object):
 
         saliency_map, optical_flow = inputs['from_lip']
         retina_image = inputs['from_vc']
-        
+
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:
             for cursor_accumulator in self.cursor_accumulators:
@@ -163,9 +165,9 @@ class FEF(object):
             saliency_accumulator.post_process()
         for cursor_accumulator in self.cursor_accumulators:
             cursor_accumulator.post_process()
-        
+
         output = self._collect_output()
-        
+
         return dict(to_pfc=None,
                     to_bg=output,
                     to_sc=output,

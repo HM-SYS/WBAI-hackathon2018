@@ -20,7 +20,7 @@ class Environment:
 
         # Action from Cerebellum module
         cb_action = inputs['from_cb']
-        
+
         if sc_action is not None:
             # If there is an action from SC module (supposed to be a succade eye motion),
             # choose it.
@@ -32,7 +32,7 @@ class Environment:
 
         # Final action values (horizontal and vertical relative angles) are between
         # -ACTION_RATE ~ ACTION_RATE.
-        
+
         return dict(to_retina=(self._image, self._angle),
                     to_bg=(self._reward, self._done))
 
@@ -69,6 +69,7 @@ class Agent(object):
         ('bg', 'pfc'), # offset=5
         ('bg', 'fef'),
         ('bg', 'sc'),
+        ('bg', 'hp'),
         ('cb', 'environment'), # offset=5
         ('sc', 'environment'), # offset=6
     ]
@@ -77,6 +78,7 @@ class Agent(object):
         self.components = {}
         self.scheduler = brica.VirtualTimeScheduler()
         self.environment = Environment()
+        self.flag = 0
         self.setup(
             environment=self.environment,
             retina=retina,
@@ -108,4 +110,17 @@ class Agent(object):
     def __call__(self, image, angle, reward, done):
         self.environment.set(image, angle, reward, done)
         self.scheduler.step()
+        #print("self.scheduler.step() :" + str(self.scheduler.step()))
+        """
+        if self.flag<7:
+            self.environment.action[0] = -0.05
+            self.environment.action[1] = -0.02
+            self.flag += 1
+        else:
+            self.environment.action[0] = 0.0
+            self.environment.action[1] = 0.0
+        """
+        print("self.environment.action :" + str(self.environment.action))
+        print("self.environment.angle :" + str(angle))
+        print("-------------------------------------------------------------")
         return self.environment.action

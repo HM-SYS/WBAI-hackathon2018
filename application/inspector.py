@@ -102,7 +102,9 @@ class Inspector(object):
     def show_saliency_map(self, saliency_map):
         saliency_map_ = np.clip(saliency_map * 255.0, 0.0, 255.0)
         data = saliency_map_.astype(np.uint8)
+        #print("data_pre :" + str(data))
         data = np.stack([data for _ in range(3)], axis=2)
+        #print("data_post :" + str(data))
         self.show_image(data, 128 * 2 + 8, 8, "saliency")
 
     def show_optical_flow(self, optical_flow):
@@ -169,6 +171,8 @@ class Inspector(object):
 
     def show_fef_data_grid(self, fef_data):
         grid_division = int(math.sqrt(len(fef_data) // 2))
+        #print("len(fef_data) :" + str(len(fef_data)) )
+        #print("grid_division :" + str(grid_division))
         grid_width = 128 // grid_division
 
         likelihoods0 = []

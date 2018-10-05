@@ -19,13 +19,19 @@ class BG(object):
         if 'from_fef' not in inputs:
             raise Exception('BG did not recieve from FEF')
 
+        if inputs['from_environment'] is not None:
+            reward, flag = inputs['from_environment']
+            print("reward :" + str(reward))
+            print("flag :" + str(flag) )
+
         fef_data = inputs['from_fef']
 
         accmulator_size = len(fef_data)
 
         # Set threshold as 0.1 (as dummy test)
         likelihood_thresholds = np.ones([accmulator_size], dtype=np.float32) * 0.3
-        
+
         return dict(to_pfc=None,
                     to_fef=None,
-                    to_sc=likelihood_thresholds)
+                    to_sc=likelihood_thresholds,
+                    to_hp=(fef_data, reward))

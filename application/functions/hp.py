@@ -9,16 +9,27 @@ class HP(object):
 
     Create allocentric panel image.
     """
-    
+
     def __init__(self):
         self.timing = brica.Timing(2, 1, 0)
 
         # Allocantric panel map image
         self.map_image = np.zeros((128, 128, 3), dtype=np.uint8)
-        
+        #print("self.map_image_init :" + str(self.map_image))
+        self.data_size=10**4
+        self.hist_size=1
+        self.feature_size = 128
+        self.image_dim = 8 * 8
+
+        self.episodeLst = [np.zeros((self.data_size, self.hist_size, self.feature_size * self.image_dim), dtype=np.float32)]
+                  #np.zeros((self.data_size, 1), dtype=np.float32)]
+
     def __call__(self, inputs):
         if 'from_retina' not in inputs:
             raise Exception('HP did not recieve from Environment')
+
+        if 'from_bg' not in inputs:
+            raise Exception('HP did not recieve from BG')
 
         # This image input from environment is a kind of cheat and not biologically
         # acculate.
@@ -27,11 +38,26 @@ class HP(object):
 
             # Transform input image into allocentric panel image
             transforemed_image = self._extract_transformed_image(image, angle)
-
+            #print("transforemed_image :" + str(transforemed_image.shape)) ---(128,128,3)
+            #print("self.map_image_pre :" + str(self.map_image))
             # Overlay into existing map image
             self._overlay_extracted_image(self.map_image, transforemed_image)
-        
+            #print("self.map_image :" + str(self.map_image))
+
+        if inputs['from_bg'] is not None:
+            fef_data, reward = inputs['from_bg']
+            for data in enumerate(fef_data):
+                feature = data[0]
+
+            print("OK")
+
         return dict(to_pfc=self.map_image)
+
+    def episodeStock(self, time, feature, reward):
+        data_index = time % self.data_size
+
+        self.episodeLst[0][data_index] = feature
+        #self.episodeLst[1][data_index] = reward
 
     def _get_perspective_mat(self, fovy, aspect_ratio, znear, zfar):
         ymax = znear * math.tan(fovy * math.pi / 360.0)
@@ -41,7 +67,11 @@ class HP(object):
         t2 = 2.0 * xmax
         t3 = 2.0 * ymax
         t4 = zfar - znear
-    
+        #print("t :" + str(t))
+        #print("t2 :" + str(t2))
+        #print("t3 :" + str(t3))
+        #print("t4 :" + str(t4))
+
         m = [[t/t2,  0.0,              0.0, 0.0],
              [0.0,  t/t3,              0.0, 0.0],
              [0.0,   0.0, (-zfar-znear)/t4, -1.0],
@@ -54,12 +84,12 @@ class HP(object):
         # In order to use black color as a blank mask, set lower clip value for
         # input image
         mask_threshold = 3
-    
+
         image = np.clip(image, mask_threshold, 255)
-    
+
         angle_h = angle[0]
         angle_v = angle[1]
-    
+
         m0 = Matrix4()
         m1 = Matrix4()
         m0.set_rot_x(angle_v)
@@ -71,9 +101,9 @@ class HP(object):
         pers_mat = self._get_perspective_mat(camera_fovy, 1.0, 0.04, 100.0)
 
         mat = pers_mat.mul(camera_mat_inv)
-    
+
         plane_distance = 3.0
-        
+
         point_srcs = [[ 1.0, 1.0, -plane_distance, 1.0],
                       [-1.0, 1.0, -plane_distance, 1.0],
                       [-1.0,-1.0, -plane_distance, 1.0],
@@ -81,12 +111,12 @@ class HP(object):
 
         point_src_2ds = []
         point_dst_2ds = []
-    
+
         for point_src in point_srcs:
             ps_x = (point_src[0] * 0.5 + 0.5) * 127.0
             ps_y = (-point_src[1] * 0.5 + 0.5) * 127.0
             point_src_2ds.append([ps_x, ps_y])
-        
+
             p = mat.transform(np.array(point_src, dtype=np.float32))
             w = p[3]
             x = p[0]/w
@@ -107,7 +137,7 @@ class HP(object):
     def _overlay_extracted_image(self, base_image, ext_image):
         GRID_DIVISION = 8
         GRID_WIDTH = 128 // GRID_DIVISION
-    
+
         for ix in range(GRID_DIVISION):
             pixel_x = GRID_WIDTH * ix
             for iy in range(GRID_DIVISION):
@@ -116,9 +146,12 @@ class HP(object):
                                                pixel_x:pixel_x+GRID_WIDTH, :]
                 ext_region_image = ext_image[pixel_y:pixel_y+GRID_WIDTH,
                                              pixel_x:pixel_x+GRID_WIDTH, :]
+                #print("base_region_image :" + str(base_region_image.shape))
+                #print("ext_region_image :" + str(ext_region_image.shape))
                 ext_region_image_sum = np.sum(ext_region_image, axis=2)
+                #print("ext_region_image_sum :" + str(ext_region_image_sum))
                 has_zero = np.any(ext_region_image_sum==0)
+                #print("has_zero :" + str(has_zero))
                 if not has_zero:
                     base_image[pixel_y:pixel_y+GRID_WIDTH,
                                pixel_x:pixel_x+GRID_WIDTH, :] = ext_region_image // 2 + base_region_image // 2
-

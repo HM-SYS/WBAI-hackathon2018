@@ -7,15 +7,15 @@ import brica
 class Retina(object):
     """ Retina module.
 
-    This retina module takes environemnt image and outputs processed image with 
+    This retina module takes environemnt image and outputs processed image with
     peripheral vision.
-    
+
     Peripheral pixels are blurred and gray-scaled.
     """
-    
+
     def __init__(self):
         self.timing = brica.Timing(1, 1, 0)
-        
+
         width = 128
         self.rates, self.inv_rates = self._create_rate_datas(width)
 
@@ -24,7 +24,7 @@ class Retina(object):
     def __call__(self, inputs):
         if 'from_environment' not in inputs:
             raise Exception('Retina did not recieve from Retina')
-        
+
         image, angle = inputs['from_environment']
         retina_image = self._create_retina_image(image)
 
@@ -37,7 +37,7 @@ class Retina(object):
 
     def _create_rate_datas(self, width):
         radius = width / 2 * 0.65
-    
+
         rates = [0.0] * (width * width)
         hw = width // 2
         for i in range(width):
@@ -74,7 +74,7 @@ class Retina(object):
         resized_image2 = cv2.resize(resized_image1,
                                   dsize=(h//8, w//8),
                                   interpolation=cv2.INTER_LINEAR)
-        
+
         # Resizing to original size
         blur_image = cv2.resize(resized_image2,
                               dsize=(h, w),
