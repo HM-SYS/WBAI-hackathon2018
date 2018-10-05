@@ -99,8 +99,6 @@ class CursorAccumulator(ActionAccumulator):
         # Calculate template matching
         match = cv2.matchTemplate(region_image, self.cursor_template,
                                   cv2.TM_CCOEFF_NORMED)
-        #print("match " + str(match))
-        #print("--------------------------------------------------")
         # Find the maximum match value
         match_rate = np.max(match)
         self.accumulate(match_rate * CURSOR_MATCH_COEFF)
@@ -168,7 +166,7 @@ class FEF(object):
 
         output = self._collect_output()
 
-        return dict(to_pfc=None,
+        return dict(to_pfc=output,
                     to_bg=output,
                     to_sc=output,
                     to_cb=None)

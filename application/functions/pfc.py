@@ -66,8 +66,9 @@ class PFC(object):
         # Allocentrix map image from hippocampal formatin module.
         map_image = inputs['from_hp']
 
-        fef_data = inputs['from_fef']
-        self.visualBuffer = self.create_visualBuffer(fef_data)
+        if inputs['from_fef'] is not None:
+            fef_data = inputs['from_fef']
+            self.visualBuffer = self.create_visualBuffer(fef_data)
 
         # This is a very sample implementation of phase detection.
         # You should change here as you like.

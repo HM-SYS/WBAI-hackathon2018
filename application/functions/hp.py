@@ -15,7 +15,6 @@ class HP(object):
 
         # Allocantric panel map image
         self.map_image = np.zeros((128, 128, 3), dtype=np.uint8)
-        #print("self.map_image_init :" + str(self.map_image))
         self.data_size=10**4
         self.hist_size=1
         self.feature_size = 128
@@ -38,11 +37,8 @@ class HP(object):
 
             # Transform input image into allocentric panel image
             transforemed_image = self._extract_transformed_image(image, angle)
-            #print("transforemed_image :" + str(transforemed_image.shape)) ---(128,128,3)
-            #print("self.map_image_pre :" + str(self.map_image))
             # Overlay into existing map image
             self._overlay_extracted_image(self.map_image, transforemed_image)
-            #print("self.map_image :" + str(self.map_image))
 
         if inputs['from_bg'] is not None:
             fef_data, reward = inputs['from_bg']
@@ -67,10 +63,6 @@ class HP(object):
         t2 = 2.0 * xmax
         t3 = 2.0 * ymax
         t4 = zfar - znear
-        #print("t :" + str(t))
-        #print("t2 :" + str(t2))
-        #print("t3 :" + str(t3))
-        #print("t4 :" + str(t4))
 
         m = [[t/t2,  0.0,              0.0, 0.0],
              [0.0,  t/t3,              0.0, 0.0],
@@ -146,12 +138,8 @@ class HP(object):
                                                pixel_x:pixel_x+GRID_WIDTH, :]
                 ext_region_image = ext_image[pixel_y:pixel_y+GRID_WIDTH,
                                              pixel_x:pixel_x+GRID_WIDTH, :]
-                #print("base_region_image :" + str(base_region_image.shape))
-                #print("ext_region_image :" + str(ext_region_image.shape))
                 ext_region_image_sum = np.sum(ext_region_image, axis=2)
-                #print("ext_region_image_sum :" + str(ext_region_image_sum))
                 has_zero = np.any(ext_region_image_sum==0)
-                #print("has_zero :" + str(has_zero))
                 if not has_zero:
                     base_image[pixel_y:pixel_y+GRID_WIDTH,
                                pixel_x:pixel_x+GRID_WIDTH, :] = ext_region_image // 2 + base_region_image // 2

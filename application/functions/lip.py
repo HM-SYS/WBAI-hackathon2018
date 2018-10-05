@@ -110,20 +110,16 @@ class LIP(object):
 
         # Calculate Inverse FFT
         image_processed = cv2.idft(dft)
-        #print("image_processed :" + str(image_processed))
         magnitude, _ = cv2.cartToPolar(image_processed[:, :, 0],
                                        image_processed[:, :, 1])
-        #print("magnitude :" + str(magnitude.shape))
         return magnitude
 
     def _get_saliency_map(self, image):
         resize_shape = (64, 64) # (h,w)
 
         # Size argument of resize() is (w,h) while image shape is (h,w,c)
-        #print("image :" + str(image.shape))
         image_resized = cv2.resize(image, resize_shape[1::-1])
         # (64,64,3)
-        #print("image_resized :" + str(image_resized.shape))
 
         saliency = np.zeros_like(image_resized, dtype=np.float32)
         # (64,64,3)
@@ -136,7 +132,6 @@ class LIP(object):
 
         # Calclate mean over channels
         saliency = np.mean(saliency, 2)
-        #print("saliency :" + str(saliency.shape))
         # (64,64)
 
         saliency = cv2.GaussianBlur(saliency, GAUSSIAN_KERNEL_SIZE, sigmaX=8, sigmaY=0)
@@ -145,5 +140,4 @@ class LIP(object):
 
         # Resize to original size
         saliency = cv2.resize(saliency, image.shape[1::-1])
-        #print("saliency :" + str(saliency.shape))  ----(128,128)
         return saliency

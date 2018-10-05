@@ -110,16 +110,6 @@ class Agent(object):
     def __call__(self, image, angle, reward, done):
         self.environment.set(image, angle, reward, done)
         self.scheduler.step()
-        #print("self.scheduler.step() :" + str(self.scheduler.step()))
-        """
-        if self.flag<7:
-            self.environment.action[0] = -0.05
-            self.environment.action[1] = -0.02
-            self.flag += 1
-        else:
-            self.environment.action[0] = 0.0
-            self.environment.action[1] = 0.0
-        """
         print("self.environment.action :" + str(self.environment.action))
         print("self.environment.angle :" + str(angle))
         print("-------------------------------------------------------------")

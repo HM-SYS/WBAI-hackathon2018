@@ -21,8 +21,7 @@ class BG(object):
 
         if inputs['from_environment'] is not None:
             reward, flag = inputs['from_environment']
-            print("reward :" + str(reward))
-            print("flag :" + str(flag) )
+
 
         fef_data = inputs['from_fef']
 

@@ -1,6 +1,5 @@
 import numpy as np
 import brica
-from numpy.random import *
 
 class SC(object):
     """
@@ -28,7 +27,6 @@ class SC(object):
 
         # Likelihoods and eye movment params from accumulators in FEF module.
         fef_data = inputs['from_fef']
-        #print("fef_data :" + str(fef_data.shape))
         # Likelihood thresolds from BG module.
         bg_data = inputs['from_bg']
 
@@ -40,8 +38,6 @@ class SC(object):
         return dict(to_environment=action)
 
     def _decide_action(self, fef_data, bg_data):
-        #sum_ex = 0.0
-        #sum_ey = 0.0
         Max = 0.0
         self.likelihoods_over_threshold = []
         self.likelihoods_under_threshold = []
@@ -63,8 +59,7 @@ class SC(object):
                 self.likelihood_over_threshold[1][count_over] = ex
                 self.likelihood_over_threshold[2][count_over] = ey
                 self.likelihoods_over_threshold.append(self.likelihood_over_threshold[0][count_over])
-                #sum_ex += ex
-                #sum_ey += ey
+
                 count_over += 1
 
             else:
@@ -74,20 +69,12 @@ class SC(object):
                 self.likelihoods_under_threshold.append(self.likelihood_under_threshold[0][count_under])
                 count_under += 1
 
-        #print("self.likelihoods_over_threshold :" + str(self.likelihoods_over_threshold))
-        #print("self.likelihoods_under_threshold :" + str(self.likelihoods_under_threshold))
-        #print("count_under :" + str(count_under))
         # Action values should be within range [-1.0~1.0]
         if count_over != 0:
             Max = np.argmax(self.likelihoods_over_threshold)
-            #action = [sum_ex / count, sum_ey / count]
             action = [self.likelihood_over_threshold[1][Max],self.likelihood_over_threshold[2][Max]]
         else:
             Max = np.argmax(self.likelihoods_under_threshold)
             action = [self.likelihood_under_threshold[1][Max],self.likelihood_under_threshold[2][Max]]
-            """
-            randam_action_ex = randn()
-            randam_action_ey = randn()
-            action = [randam_action_ex, randam_action_ey]
-            """
+
         return np.array(action, dtype=np.float32)
