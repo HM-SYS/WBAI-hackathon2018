@@ -102,9 +102,7 @@ class Inspector(object):
     def show_saliency_map(self, saliency_map):
         saliency_map_ = np.clip(saliency_map * 255.0, 0.0, 255.0)
         data = saliency_map_.astype(np.uint8)
-        #print("data_pre :" + str(data))
         data = np.stack([data for _ in range(3)], axis=2)
-        #print("data_post :" + str(data))
         self.show_image(data, 128 * 2 + 8, 8, "saliency")
 
     def show_optical_flow(self, optical_flow):
@@ -171,8 +169,6 @@ class Inspector(object):
 
     def show_fef_data_grid(self, fef_data):
         grid_division = int(math.sqrt(len(fef_data) // 2))
-        #print("len(fef_data) :" + str(len(fef_data)) )
-        #print("grid_division :" + str(grid_division))
         grid_width = 128 // grid_division
 
         likelihoods0 = []
@@ -188,6 +184,13 @@ class Inspector(object):
                        "saliency acc")
         self.show_grid(likelihoods1, 0, grid_division, grid_width, 8 + 128,
                        300, "cursor acc")
+
+    def show_vb_data_grid(self, vbArray):
+        grid_division = int(math.sqrt(len(vbArray)))
+        grid_width = 128 // grid_division
+
+        self.show_grid(vbArray, 0, grid_division, grid_width, 8 + 128 + 128, 300,
+                       "Visual Buffer")
 
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
@@ -236,6 +239,11 @@ class Inspector(object):
         if self.sc.last_fef_data is not None:
             self.show_fef_data_bars(self.sc.last_fef_data)
             self.show_fef_data_grid(self.sc.last_fef_data)
+
+        """"""
+        if self.pfc.visualBuffer is not None:
+            self.show_vb_data_grid(self.pfc.visualBuffer)
+        """"""
 
         if self.hp.map_image is not None:
             self.show_map_image(self.hp.map_image)
