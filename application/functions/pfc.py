@@ -20,13 +20,13 @@ class CursorFindAccumulator(object):
         # Accumulated likelilood
         self.decay_rate = decay_rate
         self.likelihood = 0.0
-        
+
         self.cursor_template = load_image("data/debug_cursor_template_w.png")
-        
+
     def accumulate(self, value):
         self.likelihood += value
         self.likelihood = np.clip(self.likelihood, 0.0, 1.0)
-        
+
     def reset(self):
         self.likelihood = 0.0
 
@@ -45,12 +45,12 @@ class CursorFindAccumulator(object):
 class PFC(object):
     def __init__(self):
         self.timing = brica.Timing(3, 1, 0)
-        
+
         self.cursor_find_accmulator = CursorFindAccumulator()
-        
+
         self.phase = Phase.INIT
 
-        
+
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
             raise Exception('PFC did not recieve from VC')
@@ -66,11 +66,14 @@ class PFC(object):
         # Allocentrix map image from hippocampal formatin module.
         map_image = inputs['from_hp']
 
+        fef_data = inputs['from_fef']
+        self.visualBuffer = self.create_visualBuffer(fef_data)
+
         # This is a very sample implementation of phase detection.
         # You should change here as you like.
         self.cursor_find_accmulator.process(retina_image)
         self.cursor_find_accmulator.post_process()
-        
+
         if self.phase == Phase.INIT:
             if self.cursor_find_accmulator.likelihood > 0.7:
                 self.phase = Phase.START
@@ -80,7 +83,7 @@ class PFC(object):
         else:
             if self.cursor_find_accmulator.likelihood > 0.6:
                 self.phase = Phase.START
-        
+
         if self.phase == Phase.INIT or self.phase == Phase.START:
             # TODO: 領野をまたいだ共通phaseをどう定義するか？
             fef_message = 0
@@ -89,3 +92,16 @@ class PFC(object):
 
         return dict(to_fef=fef_message,
                     to_bg=None)
+
+    def create_visualBuffer(self, fef_data) :
+        saliencyAcc = []
+        cursorAcc = []
+        visualBuffer = []
+
+        data_len = len(fef_data) // 2
+        for i in range(data_len):
+            saliencyAcc.append(fef_data[i][0])
+            cursorAcc.append(fef_data[i + data_len][0])
+            visualBuffer.append((fef_data[i][0]) + (fef_data[i + data_len][0]))
+
+        return visualBuffer
