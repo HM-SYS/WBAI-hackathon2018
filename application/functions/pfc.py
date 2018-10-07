@@ -108,8 +108,11 @@ class PFC(object):
             if self.cursor_find_accmulator.likelihood > 0.6:
                 self.phase = Phase.START
         elif self.phase == Phase.START:
-            if self.cursor_find_accmulator.likelihood < 0.4:
-                self.phase = Phase.TARGET
+            #if self.cursor_find_accmulator.likelihood < 0.4:
+            if inputs['from_bg'] is not None:
+                reward = inputs['from_bg']
+                if reward != 0:
+                    self.phase = Phase.TARGET
         else:
             if self.cursor_find_accmulator.likelihood > 0.2:
                 self.phase = Phase.START
