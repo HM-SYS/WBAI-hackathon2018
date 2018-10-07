@@ -28,6 +28,7 @@ class SC(object):
         # Likelihoods and eye movment params from accumulators in FEF module.
         fef_data = inputs['from_fef']
         # Likelihood thresolds from BG module.
+        
         likelihood_thresholds, potentialMap = inputs['from_bg']
 
         action = self._decide_action(fef_data, likelihood_thresholds)

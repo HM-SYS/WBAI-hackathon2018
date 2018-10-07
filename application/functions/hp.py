@@ -16,17 +16,17 @@ class HP(object):
         # Allocantric panel map image
         self.map_image = np.zeros((128, 128, 3), dtype=np.uint8)
         self.data_size = 10**4
+        self.episodeThreshold = 0.5
         self.value_size = 1
         self.image_dim = 128
-        self.feature_threshold = 0.2
         self.pixel_size = 21
         self.episode_index = 0
         self.pre_reward = 0
         self.buffer_size = 10
-        self.angle =[]
+        self.angle = []
 
         self.episode_List = [np.zeros((self.data_size, self.pixel_size * self.pixel_size), dtype=np.float32),
-                           np.zeros((self.data_size, self.value_size), dtype = np.float32)]
+                             np.zeros((self.data_size, self.value_size), dtype = np.float32)]
 
         self.feature_list = [np.zeros((self.image_dim*self.image_dim),dtype = np.float32),
                              np.zeros((self.image_dim*self.image_dim),dtype=np.uint8),
@@ -47,6 +47,10 @@ class HP(object):
         if 'from_pfc' not in inputs:
             raise Exception('HP did not recieve from PFC')
 
+        self.extractionEpisode = [np.zeros((int(self.data_size/100), self.pixel_size*self.pixel_size), dtype=np.float32),
+                                  np.zeros((int(self.data_size/100), 1), dtype=np.float32)]
+        self.valAve = 0
+
         # This image input from environment is a kind of cheat and not biologically
         # acculate.
         if inputs['from_retina'] is not None:
@@ -59,21 +63,24 @@ class HP(object):
 
         if inputs['from_fef'] is not None:
             saliency_map = inputs['from_fef']
-            #self.feature = self.Feature_Find(saliency_map)
-            #self.feature = self.feature.reshape(1, self.pixel_size*self.pixel_size)
-            #print("self.feature :" + str(self.feature.shape))
-            #episode_save = self.episodeStock(self.feature, self.pre_reward)
 
         if inputs['from_bg'] is not None:
             fef_data, reward = inputs['from_bg']
             self.pre_reward = reward
 
         if inputs['from_pfc'] is not None:
-            episode_buffer = inputs['from_pfc']
+            episode_buffer, nowFeature = inputs['from_pfc']
             if episode_buffer is not None:
                 self.episodeStock(episode_buffer)
 
-        return dict(to_pfc=[self.map_image, self.angle])
+            if nowFeature is not None: #1*441
+                nowFeature = np.reshape(nowFeature, (1, 441))
+                extEpi, cnt, valSum = self.searchEpisode(nowFeature)
+                if cnt != 0 :
+                    self.valAve = valSum / cnt
+                    print('valAve : ' + str(self.valAve))
+
+        return dict(to_pfc=[self.map_image, self.angle, self.valAve])
 
     def episodeStock(self, episode_buffer):
         for i in range(self.buffer_size):
@@ -170,3 +177,21 @@ class HP(object):
                 if not has_zero:
                     base_image[pixel_y:pixel_y+GRID_WIDTH,
                                pixel_x:pixel_x+GRID_WIDTH, :] = ext_region_image // 2 + base_region_image // 2
+
+    def searchEpisode(self, now_feature) : #now_feature is only feature(441)
+        cnt = 0
+        valSum = 0
+        for i in range(self.data_size):
+            list = np.reshape(self.episode_List[0][i], (1, 441))
+            squares = (list - now_feature)**2
+            sum_of_sqrt = np.sqrt(np.sum(squares)) #Euclidean distance
+
+            if(1 / (1 + sum_of_sqrt) > self.episodeThreshold) :
+                self.extractionEpisode[0][cnt] = self.episode_List[0][i] #feature
+                self.extractionEpisode[1][cnt] = self.episode_List[1][i] #val
+
+                valSum += self.episode_List[1][i]
+                #print('th : ' + str(1 / (1 + sum_of_sqrt)) + ' ,valSum : ' + str(valSum))
+                cnt += 1
+
+        return self.extractionEpisode, cnt, valSum

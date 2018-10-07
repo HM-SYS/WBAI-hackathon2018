@@ -64,22 +64,23 @@ class PFC(object):
         self.episode = None
 
         self.potentialMap_8shape = np.ones((8 , 8))
+        self.valueMap = np.zeros((8 , 8), dtype=np.float32)
 
-        self.visualBuffer = [np.zeros((8, 8),dtype = np.float32)]
+        self.visualBuffer = [np.zeros((8, 8), dtype=np.float32)]
 
-        self.feature_list = [np.zeros((self.image_dim*self.image_dim),dtype = np.float32),
-                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8),
-                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8)]
+        self.feature_list = [np.zeros((self.image_dim*self.image_dim), dtype=np.float32),
+                             np.zeros((self.image_dim*self.image_dim), dtype=np.uint8),
+                             np.zeros((self.image_dim*self.image_dim), dtype=np.uint8)]
 
-        self. feature = [np.zeros((self.pixel_size, self.pixel_size), dtype = np.float32)]
+        self.feature = [np.zeros((self.pixel_size, self.pixel_size), dtype=np.float32)]
 
         self.episode_buffer = [np.zeros((self.buffer_size, self.pixel_size * self.pixel_size), dtype=np.float32),
-                               np.zeros((self.buffer_size, self.value_size), dtype = np.float32)]
+                               np.zeros((self.buffer_size, self.value_size), dtype=np.float32)]
 
         self.episode_buffer_stock = [np.zeros((self.buffer_size, self.pixel_size * self.pixel_size), dtype=np.float32),
-                               np.zeros((self.buffer_size, self.value_size), dtype = np.float32)]
+                               np.zeros((self.buffer_size, self.value_size), dtype=np.float32)]
 
-        self.potentialMap = [np.zeros((1, self.image_dim//2), dtype = np.float32)]
+        self.potentialMap = [np.zeros((1, self.image_dim//2), dtype=np.float32)]
 
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
@@ -95,9 +96,14 @@ class PFC(object):
         retina_image = inputs['from_vc']
         # Allocentrix map image from hippocampal formatin module.
         if inputs['from_hp'] is not None:
-            map_image, angle = inputs['from_hp']
+            map_image, angle, valAve = inputs['from_hp']
+            print('pfc_valAve : ' + str(valAve))
             self.potentialMap_8shape = self.create_potentialMap(angle)
             self.potentialMap = np.reshape(self.potentialMap_8shape,(1,64))
+
+            #create valueMap
+            self.valueMap = self.create_valueMap(angle, valAve)
+            print(self.valueMap)
 
         if inputs['from_fef'] is not None:
             fef_data, saliency_map = inputs['from_fef']
@@ -121,17 +127,17 @@ class PFC(object):
         self.cursor_find_accmulator.process(retina_image)
         self.cursor_find_accmulator.post_process()
 
-      if self.phase == Phase.INIT:
-            if self.cursor_find_accmulator.likelihood > 0.5:
+        if self.phase == Phase.INIT:
+            if self.cursor_find_accmulator.likelihood > 0.6:
                 self.phase = Phase.START
-
-        elif self.phase == Phase.TARGET:
-            if self.cursor_find_accmulator.likelihood > 0.4 and reward != 0:
-                self.phase = Phase.START
-
         elif self.phase == Phase.START:
-            if self.cursor_find_accmulator.likelihood < 0.2:
-                self.phase = Phase.TARGET
+            if inputs['from_bg'] is not None:
+                reward = inputs['from_bg']
+                if reward != 0:
+                    self.phase = Phase.TARGET
+        else:
+            if self.cursor_find_accmulator.likelihood > 0.2:
+                self.phase = Phase.START
 
         if self.phase == Phase.INIT or self.phase == Phase.START:
             # TODO: 領野をまたいだ共通phaseをどう定義するか？
@@ -141,7 +147,7 @@ class PFC(object):
 
         return dict(to_fef=[fef_message, self.potentialMap, map_image],
                     to_bg=self.potentialMap,
-                    to_hp=self.episode)
+                    to_hp=[self.episode, self.feature])
 
     def BefferStock(self, feature, reward):
         self.buffer_index = self.buffer_index % self.buffer_size
@@ -211,3 +217,29 @@ class PFC(object):
         self.potentialMap_8shape[xPosi][yPosi] = self.potentialMap_8shape[xPosi][yPosi] * attenuationValue
 
         return self.potentialMap_8shape
+
+    def create_valueMap(self, angle, valAve) :
+        val = -0.4
+        angle_h = -angle[0]
+        angle_v = -angle[1]
+        param = 0.1
+        attenuationValue = 0.7
+        for i in range(8):
+           if(val < angle_h and angle_h <= val + param):
+               xPosi = i
+           if(val < angle_v and angle_v <= val + param):
+               yPosi = i
+           val += param
+        #self.valueMap[xPosi][yPosi] = valAve
+
+        if xPosi != 0 : pre_xPosi = xPosi-1
+        if yPosi != 0 : pre_yPosi = yPosi-1
+        if xPosi != 7 : pos_xPosi = xPosi+1
+        if xPosi != 7 : pos_yPosi = yPosi+1
+
+        #Area1
+        self.valueMap[pre_xPosi][yPosi] = self.valueMap[pos_xPosi][yPosi] = self.valueMap[xPosi][pre_yPosi] = self.valueMap[xPosi][pos_yPosi] = valAve * (attenuationValue**1)
+        #Area2
+        self.valueMap[pre_xPosi][pre_yPosi] = self.valueMap[pre_xPosi][pos_yPosi] = self.valueMap[pos_xPosi][pre_yPosi] = self.valueMap[pos_xPosi][pos_yPosi] = valAve * (attenuationValue**2)
+        self.valueMap[xPosi][yPosi] = valAve
+        return self.valueMap.T
