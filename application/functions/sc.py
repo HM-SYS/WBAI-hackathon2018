@@ -28,21 +28,29 @@ class SC(object):
         # Likelihoods and eye movment params from accumulators in FEF module.
         fef_data = inputs['from_fef']
         # Likelihood thresolds from BG module.
-        bg_data = inputs['from_bg']
+        likelihood_thresholds, potentialMap = inputs['from_bg']
 
-        action = self._decide_action(fef_data, bg_data)
+        #print(potentialMap)
+
+        #for i in range(64):
+        #    fef_data[i][0] = potentialMap[0][i]
+            #print(potentialMap)
+            #print("-")
+
+        action = self._decide_action(fef_data, likelihood_thresholds)
+        #print(fef_data)
 
         # Store FEF data for debug visualizer
         self.last_fef_data = fef_data
 
         return dict(to_environment=action)
 
-    def _decide_action(self, fef_data, bg_data):
+    def _decide_action(self, fef_data, likelihood_thresholds):
         Max = 0.0
         self.likelihoods_over_threshold = []
         self.likelihoods_under_threshold = []
 
-        assert(len(fef_data) == len(bg_data))
+        assert(len(fef_data) == len(likelihood_thresholds))
 
         count_over = 0
         count_under = 0
@@ -52,7 +60,7 @@ class SC(object):
             likelihood = data[0]
             ex = data[1]
             ey = data[2]
-            likelihood_threshold = bg_data[i]
+            likelihood_threshold = likelihood_thresholds[i]
 
             if likelihood > likelihood_threshold:
                 self.likelihood_over_threshold[0][count_over] = likelihood

@@ -19,7 +19,7 @@ class HP(object):
         self.hist_size=1
         self.feature_size = 128
         self.image_dim = 8 * 8
-
+        self.angle =[]
         self.episodeLst = [np.zeros((self.data_size, self.hist_size, self.feature_size * self.image_dim), dtype=np.float32)]
                   #np.zeros((self.data_size, 1), dtype=np.float32)]
 
@@ -45,9 +45,9 @@ class HP(object):
             for data in enumerate(fef_data):
                 feature = data[0]
 
-            print("OK")
+            #print("OK")
 
-        return dict(to_pfc=self.map_image)
+        return dict(to_pfc=[self.map_image, self.angle])
 
     def episodeStock(self, time, feature, reward):
         data_index = time % self.data_size
@@ -81,7 +81,9 @@ class HP(object):
 
         angle_h = angle[0]
         angle_v = angle[1]
-
+        #print(str(angle_h))
+        #print(str(angle_v))
+        self.angle = [angle_h, angle_v]
         m0 = Matrix4()
         m1 = Matrix4()
         m0.set_rot_x(angle_v)

@@ -128,6 +128,7 @@ class Inspector(object):
         # Show allocentric map image in the Hippocampal formation.
         self.show_image(map_image, 128 * 3 + 8, 300, "allocentric map")
 
+    def _get_perspective_mat(self, fovy, aspect_ratio, znear, zfar):
     def get_optical_flow_hsv(self, optical_flow):
         h, w = optical_flow.shape[:2]
         fx, fy = optical_flow[:, :, 0], optical_flow[:, :, 1]
@@ -185,37 +186,16 @@ class Inspector(object):
         self.show_grid(likelihoods1, 0, grid_division, grid_width, 8 + 128,
                        300, "cursor acc")
 
-    def show_pm_data_grid(self, pmArray):
-        grid_division = int(math.sqrt(len(pmArray[0])))
-        #print(grid_division)
+    def show_pm_data_grid(self, vbArray):
+        grid_division = int(math.sqrt(len(pmArray)))
         grid_width = 128 // grid_division
-        self.show_grid2(pmArray[0], 0, grid_division, grid_width, 8 + 128 + 128, 300,
-                       "potental map")
 
-    def show_grid2(self, data, offset, grid_division, grid_width, left, top,
-                  label):
-        index = 0
-        for ix in range(grid_division):
-            x = grid_width * ix
-            for iy in range(grid_division):
-                y = grid_width * iy
-                likelihood = data[index]
-                #print(likelihood)
-                c = int(likelihood * 255.0)
-                #print(c)
-                color = (c, c, c)
-                pygame.draw.rect(self.surface, color,
-                                 Rect(left + x, top + y, grid_width,
-                                      grid_width))
-                index += 1
-        pygame.draw.rect(self.surface, DARK_GRAY, Rect(left, top, 128, 128), 1)
-        self.draw_center_text(label, 128 / 2 + left, top + 128 + 8)
-
+        self.show_grid(pmArray, 0, grid_division, grid_width, 8 + 128 + 128, 300,
+                       "potental Map")
 
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
         index = 0
-        #print(data)
         for ix in range(grid_division):
             x = grid_width * ix
             for iy in range(grid_division):
@@ -263,7 +243,7 @@ class Inspector(object):
 
         """"""
         if self.pfc.potentialMap is not None:
-            self.show_pm_data_grid(self.pfc.potentialMap)
+            self.show_vb_data_grid(self.pfc.potentialMap)
         """"""
 
         if self.hp.map_image is not None:
