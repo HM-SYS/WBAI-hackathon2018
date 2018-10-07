@@ -111,6 +111,7 @@ class FEF(object):
 
         self.saliency_accumulators = []
         self.cursor_accumulators = []
+
         self.potentialMap = []
         cursor_template = load_image("data/debug_cursor_template_w.png")
 
@@ -147,21 +148,19 @@ class FEF(object):
             raise Exception('FEF did not recieve from BG')
 
         phase, self.potentialMap, map_image = inputs['from_pfc']
-        #print(map_image)
+
         saliency_map, optical_flow = inputs['from_lip']
         retina_image = inputs['from_vc']
-        #print(len(saliency_map))
+
         # TODO: 領野をまたいだ共通phaseをどう定義するか？
         if phase == 0:
             for cursor_accumulator in self.cursor_accumulators:
                 cursor_accumulator.process(retina_image)
         else:
             for saliency_accumulator in self.saliency_accumulators:
-                #print(self.potentialMap)
-                for i in range(64):
+                 for i in range(64):
                     saliency_map[1][i] = self.potentialMap[0][i]
-
-                saliency_accumulator.process(saliency_map)
+                #saliency_accumulator.process(saliency_map)
 
         for saliency_accumulator in self.saliency_accumulators:
             saliency_accumulator.post_process()
@@ -170,16 +169,16 @@ class FEF(object):
 
         output = self._collect_output()
 
-        return dict(to_pfc=output,
+        return dict(to_pfc=(output, saliency_map),
                     to_bg=output,
                     to_sc=output,
-                    to_cb=None)
+                    to_cb=None,
+                    to_hp=saliency_map)
 
     def _collect_output(self):
         output = []
         for saliency_accumulator in self.saliency_accumulators:
             self.potentialMap
-            #print(saliency_accumulator.output)
             output.append(saliency_accumulator.output)
         for cursor_accumulator in self.cursor_accumulators:
             output.append(cursor_accumulator.output)

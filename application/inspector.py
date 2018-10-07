@@ -187,8 +187,8 @@ class Inspector(object):
 
     def show_pm_data_grid(self, pmArray):
         grid_division = int(math.sqrt(len(pmArray[0])))
-        #print(grid_division)
         grid_width = 128 // grid_division
+
         self.show_grid2(pmArray[0], 0, grid_division, grid_width, 8 + 128 + 128, 300,
                        "potental map")
 
@@ -211,11 +211,9 @@ class Inspector(object):
         pygame.draw.rect(self.surface, DARK_GRAY, Rect(left, top, 128, 128), 1)
         self.draw_center_text(label, 128 / 2 + left, top + 128 + 8)
 
-
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
         index = 0
-        #print(data)
         for ix in range(grid_division):
             x = grid_width * ix
             for iy in range(grid_division):

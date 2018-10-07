@@ -25,7 +25,6 @@ class CursorFindAccumulator(object):
 
     def accumulate(self, value):
         self.likelihood += value
-        print(self.likelihood)
         self.likelihood = np.clip(self.likelihood, 0.0, 1.0)
 
     def reset(self):
@@ -39,13 +38,9 @@ class CursorFindAccumulator(object):
 
     def post_process(self):
         # Decay likelihood
-        #minPotentialValue = 0
-        #minPotentialValue > 0.5
-
-        #if minPotentialValue in self.potentialMap_8shape :
         self.likelihood *= self.decay_rate
-        #else :
-            #self.potentialMap_8shape = np.ones((8 , 8))
+
+
 
 class PFC(object):
     def __init__(self):
@@ -54,9 +49,37 @@ class PFC(object):
         self.cursor_find_accmulator = CursorFindAccumulator()
 
         self.phase = Phase.INIT
+        self.buffer_size = 10
+        self.pixel_size = 21
+        self.value_size = 1
+        self.pre_reward = 0
+        self.buffer_index = 0
+        self.episode_buffer_List_index = 0
+        self.map_image = np.zeros((128, 128, 3), dtype=np.uint8)
+        self.image_dim = 128
+        self.feature_threshold = 0.2
+        self.episode_index = 0
+        self.pre_reward = 0
+        self.BefferStock_decay_rate = 0.9
+        self.episode = None
 
         self.potentialMap_8shape = np.ones((8 , 8))
 
+        self.visualBuffer = [np.zeros((8, 8),dtype = np.float32)]
+
+        self.feature_list = [np.zeros((self.image_dim*self.image_dim),dtype = np.float32),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8)]
+
+        self. feature = [np.zeros((self.pixel_size, self.pixel_size), dtype = np.float32)]
+
+        self.episode_buffer = [np.zeros((self.buffer_size, self.pixel_size * self.pixel_size), dtype=np.float32),
+                               np.zeros((self.buffer_size, self.value_size), dtype = np.float32)]
+
+        self.episode_buffer_stock = [np.zeros((self.buffer_size, self.pixel_size * self.pixel_size), dtype=np.float32),
+                               np.zeros((self.buffer_size, self.value_size), dtype = np.float32)]
+
+        self.potentialMap = [np.zeros((1, self.image_dim//2), dtype = np.float32)]
 
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
@@ -70,34 +93,28 @@ class PFC(object):
 
         # Image from Visual cortex module.
         retina_image = inputs['from_vc']
-
-
-        """"""
-
+        # Allocentrix map image from hippocampal formatin module.
         if inputs['from_hp'] is not None:
             map_image, angle = inputs['from_hp']
             self.potentialMap_8shape = self.create_potentialMap(angle)
             self.potentialMap = np.reshape(self.potentialMap_8shape,(1,64))
-            #print("angle_h : " + str(angle[0]))
-            #print("angle_v : " + str(angle[1]))
-            #self.potentialMap = self.create_potentialMap()
-            #self.potentialMap = self.create_potentialMap(map_image)
-            # Allocentrix map image from hippocampal formatin module.
-
-            # Using potentail_map
-        """"""
-        """"""
 
         if inputs['from_fef'] is not None:
-            fef_data = inputs['from_fef']
-            self.visualBuffer = self.create_visualBuffer(fef_data)
+            fef_data, saliency_map = inputs['from_fef']
+            self.feature = self.Feature_Find(saliency_map)
+            self.feature = self.feature.reshape(1, self.pixel_size*self.pixel_size)
+            self.episode_buffer_stock = self.BefferStock(self.feature, self.pre_reward)
+            if self.pre_reward != 0:
+                episode_flag = True
+                self.episode = self.episode_buffer_stock
+            else:
+                self.episode = None
 
-        """"""
         if inputs['from_bg'] is not None:
             reward = inputs['from_bg']
             if reward != 0:
                 self.potentialMap_8shape = np.ones((8 , 8))
-
+            self.pre_reward = reward
 
         # This is a very sample implementation of phase detection.
         # You should change here as you like.
@@ -108,7 +125,6 @@ class PFC(object):
             if self.cursor_find_accmulator.likelihood > 0.6:
                 self.phase = Phase.START
         elif self.phase == Phase.START:
-            #if self.cursor_find_accmulator.likelihood < 0.4:
             if inputs['from_bg'] is not None:
                 reward = inputs['from_bg']
                 if reward != 0:
@@ -124,50 +140,74 @@ class PFC(object):
             fef_message = 1
 
         return dict(to_fef=[fef_message, self.potentialMap, map_image],
-                    to_bg=self.potentialMap)
+                    to_bg=self.potentialMap,
+                    to_hp=self.episode)
 
-        """"""
+    def BefferStock(self, feature, reward):
+        self.buffer_index = self.buffer_index % self.buffer_size
+        self.episode_buffer[0][self.buffer_index] = feature
+        self.episode_buffer[1][self.buffer_index] = reward
+        self.buffer_index += 1
+        if reward != 0:
+            for i in range(self.buffer_index):
+                self.episode_buffer[1][self.buffer_index - i]  = reward*(self.BefferStock_decay_rate**i)
 
-    def create_visualBuffer(self, fef_data) :
-        saliencyAcc = []
-        cursorAcc = []
-        visualBuffer = []
-        data_len = len(fef_data) // 2
-        for i in range(data_len):
-            saliencyAcc.append(fef_data[i][0])
-            cursorAcc.append(fef_data[i + data_len][0])
-            visualBuffer.append((fef_data[i][0]) + (fef_data[i + data_len][0]))
+        if self.buffer_index == self.buffer_size:
+            self.buffer_index = 0
 
-        return visualBuffer
+        return self.episode_buffer
 
-        """"""
+    def Feature_Find(self, saliency_map):
+        count = 0
+        Max_feature = 0
+        self.feature_lists = []
+        self.episode_feature = np.array([[0.0]*self.pixel_size for i in range(self.pixel_size)])
+
+        for i in range(self.image_dim):
+            for j in range(self.image_dim):
+                if saliency_map[i][j] < self.feature_threshold:
+                    self.feature_list[0][count] = 0.0
+                    self.feature_list[1][count] = i
+                    self.feature_list[2][count] = j
+                    self.feature_lists.append(self.feature_list[0][count])
+                    count += 1
+
+                else:
+                    self.feature_list[0][count] = saliency_map[i][j]
+                    self.feature_list[1][count] = i
+                    self.feature_list[2][count] = j
+                    self.feature_lists.append(self.feature_list[0][count])
+                    count += 1
+
+        Max_feature = np.argmax(self.feature_lists)
+
+        for x in range(self.pixel_size):
+            Central_visual_field_x = (self.feature_list[1][Max_feature] - ((self.pixel_size - 1) // 2)) + x
+            for y in range(self.pixel_size):
+                Central_visual_field_y = (self.feature_list[2][Max_feature] - ((self.pixel_size - 1) // 2)) + y
+                if (Central_visual_field_x < 0) or (self.image_dim <= Central_visual_field_x):
+                    self.episode_feature[x][y] = 0.0
+                elif (Central_visual_field_y < 0) or (self.image_dim <= Central_visual_field_y):
+                    self.episode_feature[x][y] = 0.0
+                else:
+                    self.episode_feature[x][y] = saliency_map[Central_visual_field_x][Central_visual_field_y]
+                    if self.episode_feature[x][y] < self.feature_threshold:
+                        self.episode_feature[x][y] = 0.0
+
+        return self.episode_feature
 
     def create_potentialMap(self, angle) :
         val = -0.4
         angle_h = -angle[0]
         angle_v = -angle[1]
-        #print(angle_h)
-        #print(angle_v)
         param = 0.1
         attenuationValue = 0.95
-
         for i in range(8):
-            if(val < angle_h and angle_h <= val + param):
-                xPosi = i
-            if(val < angle_v and angle_v <= val + param):
-                yPosi = i
-            val += param
-
+           if(val < angle_h and angle_h <= val + param):
+               xPosi = i
+           if(val < angle_v and angle_v <= val + param):
+               yPosi = i
+           val += param
         self.potentialMap_8shape[xPosi][yPosi] = self.potentialMap_8shape[xPosi][yPosi] * attenuationValue
-        #print(self.potentialMap_8shape)
-        #if(self.potentialMap <= 0.5):
-            #self.likelihood *= 0.5
-
-
-        #self.potentialMap_8shape = self.potentialMap_8shape + attenuationValue * 10000000000000
-        #self.likelihood = self.potentialMap_8shape * ( i / 1.5)
-        #print(self.likelihood)
-
-        #print(str(self.potentialMap))
 
         return self.potentialMap_8shape

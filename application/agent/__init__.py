@@ -62,10 +62,12 @@ class Agent(object):
         ('vc', 'fef'),
         ('pfc', 'fef'), # offset=3
         ('pfc', 'bg'),
+        ('pfc', 'hp'),
         ('fef', 'pfc'), # offset=4
         ('fef', 'sc'),
         ('fef', 'bg'),
         ('fef', 'cb'),
+        ('fef', 'hp'),
         ('bg', 'pfc'), # offset=5
         ('bg', 'fef'),
         ('bg', 'sc'),
@@ -110,7 +112,7 @@ class Agent(object):
     def __call__(self, image, angle, reward, done):
         self.environment.set(image, angle, reward, done)
         self.scheduler.step()
-        #print("self.environment.action :" + str(self.environment.action))
-        #print("self.environment.angle :" + str(angle))
-        #print("-------------------------------------------------------------")
+        print("self.environment.action :" + str(self.environment.action))
+        print("self.environment.angle :" + str(angle))
+        print("-------------------------------------------------------------")
         return self.environment.action

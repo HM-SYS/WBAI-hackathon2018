@@ -30,15 +30,7 @@ class SC(object):
         # Likelihood thresolds from BG module.
         likelihood_thresholds, potentialMap = inputs['from_bg']
 
-        #print(potentialMap)
-
-        #for i in range(64):
-        #    fef_data[i][0] = potentialMap[0][i]
-            #print(potentialMap)
-            #print("-")
-
         action = self._decide_action(fef_data, likelihood_thresholds)
-        #print(fef_data)
 
         # Store FEF data for debug visualizer
         self.last_fef_data = fef_data

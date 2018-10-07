@@ -15,20 +15,37 @@ class HP(object):
 
         # Allocantric panel map image
         self.map_image = np.zeros((128, 128, 3), dtype=np.uint8)
-        self.data_size=10**4
-        self.hist_size=1
-        self.feature_size = 128
-        self.image_dim = 8 * 8
+        self.data_size = 10**4
+        self.value_size = 1
+        self.image_dim = 128
+        self.feature_threshold = 0.2
+        self.pixel_size = 21
+        self.episode_index = 0
+        self.pre_reward = 0
+        self.buffer_size = 10
         self.angle =[]
-        self.episodeLst = [np.zeros((self.data_size, self.hist_size, self.feature_size * self.image_dim), dtype=np.float32)]
-                  #np.zeros((self.data_size, 1), dtype=np.float32)]
+
+        self.episode_List = [np.zeros((self.data_size, self.pixel_size * self.pixel_size), dtype=np.float32),
+                           np.zeros((self.data_size, self.value_size), dtype = np.float32)]
+
+        self.feature_list = [np.zeros((self.image_dim*self.image_dim),dtype = np.float32),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8)]
+
+        self. feature = [np.zeros((self.pixel_size, self.pixel_size), dtype = np.float32)]
 
     def __call__(self, inputs):
         if 'from_retina' not in inputs:
             raise Exception('HP did not recieve from Environment')
 
+        if 'from_fef' not in inputs:
+            raise Exception('HP did not recieve from FEF')
+
         if 'from_bg' not in inputs:
             raise Exception('HP did not recieve from BG')
+
+        if 'from_pfc' not in inputs:
+            raise Exception('HP did not recieve from PFC')
 
         # This image input from environment is a kind of cheat and not biologically
         # acculate.
@@ -40,20 +57,29 @@ class HP(object):
             # Overlay into existing map image
             self._overlay_extracted_image(self.map_image, transforemed_image)
 
+        if inputs['from_fef'] is not None:
+            saliency_map = inputs['from_fef']
+            #self.feature = self.Feature_Find(saliency_map)
+            #self.feature = self.feature.reshape(1, self.pixel_size*self.pixel_size)
+            #print("self.feature :" + str(self.feature.shape))
+            #episode_save = self.episodeStock(self.feature, self.pre_reward)
+
         if inputs['from_bg'] is not None:
             fef_data, reward = inputs['from_bg']
-            for data in enumerate(fef_data):
-                feature = data[0]
+            self.pre_reward = reward
 
-            #print("OK")
+        if inputs['from_pfc'] is not None:
+            episode_buffer = inputs['from_pfc']
+            if episode_buffer is not None:
+                self.episodeStock(episode_buffer)
 
         return dict(to_pfc=[self.map_image, self.angle])
 
-    def episodeStock(self, time, feature, reward):
-        data_index = time % self.data_size
-
-        self.episodeLst[0][data_index] = feature
-        #self.episodeLst[1][data_index] = reward
+    def episodeStock(self, episode_buffer):
+        for i in range(self.buffer_size):
+            self.episode_List[0][self.episode_index] = episode_buffer[0][i]
+            self.episode_List[1][self.episode_index] = episode_buffer[1][i]
+            self.episode_index += 1
 
     def _get_perspective_mat(self, fovy, aspect_ratio, znear, zfar):
         ymax = znear * math.tan(fovy * math.pi / 360.0)
@@ -81,9 +107,8 @@ class HP(object):
 
         angle_h = angle[0]
         angle_v = angle[1]
-        #print(str(angle_h))
-        #print(str(angle_v))
         self.angle = [angle_h, angle_v]
+
         m0 = Matrix4()
         m1 = Matrix4()
         m0.set_rot_x(angle_v)
