@@ -121,17 +121,17 @@ class PFC(object):
         self.cursor_find_accmulator.process(retina_image)
         self.cursor_find_accmulator.post_process()
 
-        if self.phase == Phase.INIT:
-            if self.cursor_find_accmulator.likelihood > 0.6:
+      if self.phase == Phase.INIT:
+            if self.cursor_find_accmulator.likelihood > 0.5:
                 self.phase = Phase.START
+
+        elif self.phase == Phase.TARGET:
+            if self.cursor_find_accmulator.likelihood > 0.4 and reward != 0:
+                self.phase = Phase.START
+
         elif self.phase == Phase.START:
-            if inputs['from_bg'] is not None:
-                reward = inputs['from_bg']
-                if reward != 0:
-                    self.phase = Phase.TARGET
-        else:
             if self.cursor_find_accmulator.likelihood > 0.2:
-                self.phase = Phase.START
+                self.phase = Phase.TARGET
 
         if self.phase == Phase.INIT or self.phase == Phase.START:
             # TODO: 領野をまたいだ共通phaseをどう定義するか？
