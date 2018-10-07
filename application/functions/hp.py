@@ -47,14 +47,14 @@ class HP(object):
         if 'from_pfc' not in inputs:
             raise Exception('HP did not recieve from PFC')
 
-        self.extractionEpisode = [np.zeros((int(self.data_size/100), self.pixel_size*self.pixel_size), dtype=np.float32),
-                                  np.zeros((int(self.data_size/100), 1), dtype=np.float32)]
+        self.extractionEpisode = [np.zeros(((self.data_size//100), self.pixel_size*self.pixel_size), dtype=np.float32),
+                                  np.zeros(((self.data_size//100), 1), dtype=np.float32)]
         self.valAve = 0
 
         # This image input from environment is a kind of cheat and not biologically
         # acculate.
         if inputs['from_retina'] is not None:
-            image, angle = inputs['from_retina'] # (128, 128, 3), (2)
+            image, angle = inputs['from_retina']
 
             # Transform input image into allocentric panel image
             transforemed_image = self._extract_transformed_image(image, angle)
@@ -78,7 +78,6 @@ class HP(object):
                 extEpi, cnt, valSum = self.searchEpisode(nowFeature)
                 if cnt != 0 :
                     self.valAve = valSum / cnt
-                    print('valAve : ' + str(self.valAve))
 
         return dict(to_pfc=[self.map_image, self.angle, self.valAve])
 
@@ -185,13 +184,10 @@ class HP(object):
             list = np.reshape(self.episode_List[0][i], (1, 441))
             squares = (list - now_feature)**2
             sum_of_sqrt = np.sqrt(np.sum(squares)) #Euclidean distance
-
             if(1 / (1 + sum_of_sqrt) > self.episodeThreshold) :
                 self.extractionEpisode[0][cnt] = self.episode_List[0][i] #feature
                 self.extractionEpisode[1][cnt] = self.episode_List[1][i] #val
-
                 valSum += self.episode_List[1][i]
                 #print('th : ' + str(1 / (1 + sum_of_sqrt)) + ' ,valSum : ' + str(valSum))
                 cnt += 1
-
         return self.extractionEpisode, cnt, valSum

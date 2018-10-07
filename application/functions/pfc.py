@@ -14,7 +14,6 @@ class Phase(object):
     START = 0  # Start phase while finding red cross cursor
     TARGET = 1 # Target finding phsae
 
-
 class CursorFindAccumulator(object):
     def __init__(self, decay_rate=0.9):
         # Accumulated likelilood
@@ -40,8 +39,6 @@ class CursorFindAccumulator(object):
         # Decay likelihood
         self.likelihood *= self.decay_rate
 
-
-
 class PFC(object):
     def __init__(self):
         self.timing = brica.Timing(3, 1, 0)
@@ -62,17 +59,17 @@ class PFC(object):
         self.pre_reward = 0
         self.BefferStock_decay_rate = 0.9
         self.episode = None
+        self.Grid_size = 16
 
         self.potentialMap_8shape = np.ones((8 , 8))
+
         self.valueMap = np.zeros((8 , 8), dtype=np.float32)
 
-        self.visualBuffer = [np.zeros((8, 8), dtype=np.float32)]
+        self.feature_list = [np.zeros((self.image_dim*self.image_dim),dtype=np.float32),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8),
+                             np.zeros((self.image_dim*self.image_dim),dtype=np.uint8)]
 
-        self.feature_list = [np.zeros((self.image_dim*self.image_dim), dtype=np.float32),
-                             np.zeros((self.image_dim*self.image_dim), dtype=np.uint8),
-                             np.zeros((self.image_dim*self.image_dim), dtype=np.uint8)]
-
-        self.feature = [np.zeros((self.pixel_size, self.pixel_size), dtype=np.float32)]
+        self. feature = [np.zeros((self.pixel_size, self.pixel_size), dtype=np.float32)]
 
         self.episode_buffer = [np.zeros((self.buffer_size, self.pixel_size * self.pixel_size), dtype=np.float32),
                                np.zeros((self.buffer_size, self.value_size), dtype=np.float32)]
@@ -81,6 +78,16 @@ class PFC(object):
                                np.zeros((self.buffer_size, self.value_size), dtype=np.float32)]
 
         self.potentialMap = [np.zeros((1, self.image_dim//2), dtype=np.float32)]
+
+        self.allocentric_Grid = [np.zeros((8, 8), dtype = np.float32)]
+
+        self.Normalization = [np.zeros((8, 8), dtype = np.float32)]
+
+        self.Normalization_Ones = [np.ones((8, 8),dtype = np.uint8)]
+
+        self.potental_allocentric = [np.zeros((8, 8), dtype = np.float32)]
+
+        test = None
 
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
@@ -97,13 +104,12 @@ class PFC(object):
         # Allocentrix map image from hippocampal formatin module.
         if inputs['from_hp'] is not None:
             map_image, angle, valAve = inputs['from_hp']
-            print('pfc_valAve : ' + str(valAve))
+            self.allocentric_Grid = self.GRID_Average(map_image)
             self.potentialMap_8shape = self.create_potentialMap(angle)
-            self.potentialMap = np.reshape(self.potentialMap_8shape,(1,64))
-
-            #create valueMap
             self.valueMap = self.create_valueMap(angle, valAve)
-            print(self.valueMap)
+            self.potental_allocentric = (self.allocentric_Grid + self.potentialMap_8shape + self.valueMap) / 3
+            self.Normalization = self.Normalization_Ones - self.potental_allocentric
+            self.potentialMap = np.reshape(self.Normalization,(1,64))
 
         if inputs['from_fef'] is not None:
             fef_data, saliency_map = inputs['from_fef']
@@ -154,12 +160,11 @@ class PFC(object):
         self.episode_buffer[0][self.buffer_index] = feature
         self.episode_buffer[1][self.buffer_index] = reward
         self.buffer_index += 1
+        if self.buffer_index == self.buffer_size:
+            self.buffer_index = 0
         if reward != 0:
             for i in range(self.buffer_index):
                 self.episode_buffer[1][self.buffer_index - i]  = reward*(self.BefferStock_decay_rate**i)
-
-        if self.buffer_index == self.buffer_size:
-            self.buffer_index = 0
 
         return self.episode_buffer
 
@@ -218,6 +223,27 @@ class PFC(object):
 
         return self.potentialMap_8shape
 
+    def GRID_Average(self, map_image):
+        pad = 0
+        stride = 16
+        filter = 16
+        H, W, C = map_image.shape
+        out_h = 1 + int((H + 2*pad - filter) / stride)
+        out_w = 1 + int((W + 2*pad - filter) / stride)
+        calc = np.zeros((out_h, out_w), dtype = np.float32)
+        calc_map = np.zeros((out_h, out_w), dtype = np.float32)
+        map_image = np.mean(map_image, axis = 2)
+
+        for i_max in range(out_h):
+            for j_max in range(out_w):
+                for i in range(stride):
+                    for j in range(stride):
+                        calc[i_max][j_max] += map_image[i + i_max*stride][j + j_max*stride]
+        calc = calc / 256
+        calc_map = calc / 255
+
+        return calc_map
+
     def create_valueMap(self, angle, valAve) :
         val = -0.4
         angle_h = -angle[0]
@@ -231,12 +257,10 @@ class PFC(object):
                yPosi = i
            val += param
         #self.valueMap[xPosi][yPosi] = valAve
-
-        if xPosi != 0 : pre_xPosi = xPosi-1
-        if yPosi != 0 : pre_yPosi = yPosi-1
-        if xPosi != 7 : pos_xPosi = xPosi+1
-        if xPosi != 7 : pos_yPosi = yPosi+1
-
+        if xPosi > 0 : pre_xPosi = xPosi-1
+        if yPosi > 0 : pre_yPosi = yPosi-1
+        if xPosi < 7 : pos_xPosi = xPosi+1
+        if xPosi < 7 : pos_yPosi = yPosi+1
         #Area1
         self.valueMap[pre_xPosi][yPosi] = self.valueMap[pos_xPosi][yPosi] = self.valueMap[xPosi][pre_yPosi] = self.valueMap[xPosi][pos_yPosi] = valAve * (attenuationValue**1)
         #Area2

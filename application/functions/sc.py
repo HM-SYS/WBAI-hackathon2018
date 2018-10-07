@@ -10,6 +10,7 @@ class SC(object):
         self.timing = brica.Timing(6, 1, 0)
 
         self.last_fef_data = None
+        self.action = None
         self.data_size = 128
         self.likelihood_over_threshold = [np.zeros(self.data_size),
                                     np.zeros(self.data_size),
@@ -28,15 +29,15 @@ class SC(object):
         # Likelihoods and eye movment params from accumulators in FEF module.
         fef_data = inputs['from_fef']
         # Likelihood thresolds from BG module.
-        
-        likelihood_thresholds, potentialMap = inputs['from_bg']
+        if inputs['from_bg'] is not None:
+            likelihood_thresholds, potentialMap = inputs['from_bg']
 
-        action = self._decide_action(fef_data, likelihood_thresholds)
+            self.action = self._decide_action(fef_data, likelihood_thresholds)
 
         # Store FEF data for debug visualizer
         self.last_fef_data = fef_data
 
-        return dict(to_environment=action)
+        return dict(to_environment=self.action)
 
     def _decide_action(self, fef_data, likelihood_thresholds):
         Max = 0.0

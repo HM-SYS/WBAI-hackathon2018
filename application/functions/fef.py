@@ -158,8 +158,7 @@ class FEF(object):
                 cursor_accumulator.process(retina_image)
         else:
             for saliency_accumulator in self.saliency_accumulators:
-                #print("aaa")
-                for i in range(64):
+                 for i in range(64):
                     saliency_map[1][i] = self.potentialMap[0][i]
                 #saliency_accumulator.process(saliency_map)
 
@@ -170,7 +169,7 @@ class FEF(object):
 
         output = self._collect_output()
 
-        return dict(to_pfc=[output, saliency_map],
+        return dict(to_pfc=(output, saliency_map),
                     to_bg=output,
                     to_sc=output,
                     to_cb=None,

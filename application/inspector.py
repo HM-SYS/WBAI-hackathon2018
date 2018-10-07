@@ -122,7 +122,7 @@ class Inspector(object):
         cv2.polylines(image, lines, 0, (0, 255, 0))
         for (x1, y1), (x2, y2) in lines:
             cv2.circle(image, (x1, y1), 1, (0, 255, 0), -1)
-        self.show_image(image, 128 * 3 + 8, 8, "opt_flow")######################
+        self.show_image(image, 128 * 3 + 8, 8, "opt_flow")
 
     def show_map_image(self, map_image):
         # Show allocentric map image in the Hippocampal formation.
@@ -259,9 +259,10 @@ class Inspector(object):
             self.show_fef_data_bars(self.sc.last_fef_data)
             self.show_fef_data_grid(self.sc.last_fef_data)
 
+        """"""
         if self.pfc.potentialMap is not None:
             self.show_pm_data_grid(self.pfc.potentialMap)
-
+        """"""
 
         if self.hp.map_image is not None:
             self.show_map_image(self.hp.map_image)
