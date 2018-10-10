@@ -47,8 +47,8 @@ class HP(object):
         if 'from_pfc' not in inputs:
             raise Exception('HP did not recieve from PFC')
 
-        self.extractionEpisode = [np.zeros(((self.data_size//100), self.pixel_size*self.pixel_size), dtype=np.float32),
-                                  np.zeros(((self.data_size//100), 1), dtype=np.float32)]
+        self.extractionEpisode = [np.zeros(((self.data_size), self.pixel_size*self.pixel_size), dtype=np.float32),
+                                  np.zeros(((self.data_size), 1), dtype=np.float32)]
         self.valAve = 0
 
         # This image input from environment is a kind of cheat and not biologically
@@ -188,6 +188,5 @@ class HP(object):
                 self.extractionEpisode[0][cnt] = self.episode_List[0][i] #feature
                 self.extractionEpisode[1][cnt] = self.episode_List[1][i] #val
                 valSum += self.episode_List[1][i]
-                #print('th : ' + str(1 / (1 + sum_of_sqrt)) + ' ,valSum : ' + str(valSum))
                 cnt += 1
         return self.extractionEpisode, cnt, valSum

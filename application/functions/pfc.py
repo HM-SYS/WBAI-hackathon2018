@@ -250,6 +250,11 @@ class PFC(object):
         angle_v = -angle[1]
         param = 0.1
         attenuationValue = 0.7
+        pre_xPosi = 0
+        pre_yPosi = 0
+        pos_xPosi = 0
+        pos_yPosi = 0
+
         for i in range(8):
            if(val < angle_h and angle_h <= val + param):
                xPosi = i
@@ -260,7 +265,7 @@ class PFC(object):
         if xPosi > 0 : pre_xPosi = xPosi-1
         if yPosi > 0 : pre_yPosi = yPosi-1
         if xPosi < 7 : pos_xPosi = xPosi+1
-        if xPosi < 7 : pos_yPosi = yPosi+1
+        if yPosi < 7 : pos_yPosi = yPosi+1
         #Area1
         self.valueMap[pre_xPosi][yPosi] = self.valueMap[pos_xPosi][yPosi] = self.valueMap[xPosi][pre_yPosi] = self.valueMap[xPosi][pos_yPosi] = valAve * (attenuationValue**1)
         #Area2

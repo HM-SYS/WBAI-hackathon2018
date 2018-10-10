@@ -189,27 +189,8 @@ class Inspector(object):
         grid_division = int(math.sqrt(len(pmArray[0])))
         grid_width = 128 // grid_division
 
-        self.show_grid2(pmArray[0], 0, grid_division, grid_width, 8 + 128 + 128, 300,
+        self.show_grid(pmArray[0], 0, grid_division, grid_width, 8 + 128 + 128, 300,
                        "potental map")
-
-    def show_grid2(self, data, offset, grid_division, grid_width, left, top,
-                  label):
-        index = 0
-        for ix in range(grid_division):
-            x = grid_width * ix
-            for iy in range(grid_division):
-                y = grid_width * iy
-                likelihood = data[index]
-                #print(likelihood)
-                c = int(likelihood * 255.0)
-                #print(c)
-                color = (c, c, c)
-                pygame.draw.rect(self.surface, color,
-                                 Rect(left + x, top + y, grid_width,
-                                      grid_width))
-                index += 1
-        pygame.draw.rect(self.surface, DARK_GRAY, Rect(left, top, 128, 128), 1)
-        self.draw_center_text(label, 128 / 2 + left, top + 128 + 8)
 
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):
@@ -225,6 +206,7 @@ class Inspector(object):
                                  Rect(left + x, top + y, grid_width,
                                       grid_width))
                 index += 1
+            #print("likelihood :" + str(likelihood.shape))
         pygame.draw.rect(self.surface, DARK_GRAY, Rect(left, top, 128, 128), 1)
         self.draw_center_text(label, 128 / 2 + left, top + 128 + 8)
 
@@ -258,11 +240,8 @@ class Inspector(object):
         if self.sc.last_fef_data is not None:
             self.show_fef_data_bars(self.sc.last_fef_data)
             self.show_fef_data_grid(self.sc.last_fef_data)
-
-        """"""
-        if self.pfc.potentialMap is not None:
-            self.show_pm_data_grid(self.pfc.potentialMap)
-        """"""
+            if self.pfc.potentialMap is not None:
+                self.show_pm_data_grid(self.pfc.potentialMap)
 
         if self.hp.map_image is not None:
             self.show_map_image(self.hp.map_image)
