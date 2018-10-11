@@ -85,10 +85,6 @@ class PFC(object):
 
         self.Normalization_Ones = [np.ones((8, 8),dtype = np.uint8)]
 
-        self.potental_allocentric = [np.zeros((8, 8), dtype = np.float32)]
-
-        test = None
-
     def __call__(self, inputs):
         if 'from_vc' not in inputs:
             raise Exception('PFC did not recieve from VC')
@@ -104,11 +100,12 @@ class PFC(object):
         # Allocentrix map image from hippocampal formatin module.
         if inputs['from_hp'] is not None:
             map_image, angle, valAve = inputs['from_hp']
-            self.allocentric_Grid = self.GRID_Average(map_image)
+            self.allocentric_Grid = (self.GRID_Average(map_image)).T
+            self.allocentric_Grid = self.Normalization_Ones - self.allocentric_Grid
+
             self.potentialMap_8shape = self.create_potentialMap(angle)
             self.valueMap = self.create_valueMap(angle, valAve)
-            self.potental_allocentric = (self.allocentric_Grid + self.potentialMap_8shape + self.valueMap) / 3
-            self.Normalization = self.Normalization_Ones - self.potental_allocentric
+            self.Normalization = (self.allocentric_Grid + self.potentialMap_8shape + self.valueMap) / 3
             self.potentialMap = np.reshape(self.Normalization,(1,64))
 
         if inputs['from_fef'] is not None:
@@ -254,6 +251,7 @@ class PFC(object):
         pre_yPosi = 0
         pos_xPosi = 0
         pos_yPosi = 0
+        vMap = np.zeros((8 , 8), dtype=np.float32)
 
         for i in range(8):
            if(val < angle_h and angle_h <= val + param):
@@ -267,8 +265,13 @@ class PFC(object):
         if xPosi < 7 : pos_xPosi = xPosi+1
         if yPosi < 7 : pos_yPosi = yPosi+1
         #Area1
-        self.valueMap[pre_xPosi][yPosi] = self.valueMap[pos_xPosi][yPosi] = self.valueMap[xPosi][pre_yPosi] = self.valueMap[xPosi][pos_yPosi] = valAve * (attenuationValue**1)
+        vMap[pre_xPosi][yPosi] = vMap[pos_xPosi][yPosi] = vMap[xPosi][pre_yPosi] = vMap[xPosi][pos_yPosi] = valAve * (attenuationValue**1)
         #Area2
-        self.valueMap[pre_xPosi][pre_yPosi] = self.valueMap[pre_xPosi][pos_yPosi] = self.valueMap[pos_xPosi][pre_yPosi] = self.valueMap[pos_xPosi][pos_yPosi] = valAve * (attenuationValue**2)
-        self.valueMap[xPosi][yPosi] = valAve
-        return self.valueMap.T
+        vMap[pre_xPosi][pre_yPosi] = vMap[pre_xPosi][pos_yPosi] = vMap[pos_xPosi][pre_yPosi] = vMap[pos_xPosi][pos_yPosi] = valAve * (attenuationValue**2)
+        vMap[xPosi][yPosi] = valAve
+
+        #vMap = np.clip(vMap, np.min(vMap), np.max(vMap))
+        if np.max(vMap) != 0 :
+            vMap = vMap / np.max(vMap)
+
+        return vMap

@@ -190,7 +190,7 @@ class Inspector(object):
         grid_width = 128 // grid_division
 
         self.show_grid(pmArray[0], 0, grid_division, grid_width, 8 + 128 + 128, 300,
-                       "potental map")
+                       "potential map")
 
     def show_grid(self, data, offset, grid_division, grid_width, left, top,
                   label):

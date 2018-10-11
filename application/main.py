@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
- Main script for web monitor interface. 
+ Main script for web monitor interface.
 """
 
 import os
